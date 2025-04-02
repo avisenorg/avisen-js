@@ -1,13 +1,17 @@
-import express, { Request, Response} from 'express';
+import express from 'express';
+import {routes} from "./routes/routes";
+import {middleware} from "./middleware/middleware";
+import 'dotenv/config'
+import {nodeMode} from "./utils/env_vars";
 
 const app = express();
 const port = 8085;
+const mode = nodeMode()
 
-app.use(express.json());
+middleware(app);
+routes(app);
 
-app.get('/', (_req: Request, res: Response) => {
-  res.send({ message: 'Hello World!'});
-})
+console.log(`Starting up node as ${mode}`)
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`)
