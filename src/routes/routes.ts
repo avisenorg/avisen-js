@@ -1,6 +1,5 @@
 import {Express, Request, Response} from "express";
 import {nodeAddress, nodeMode} from "../utils/env_vars";
-import {validateNetworkIdHeader} from "../middleware/middleware";
 
 function helloWorld(app: Express) {
   app.get('/', (_req: Request, res: Response) => {
