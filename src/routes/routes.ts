@@ -1,6 +1,8 @@
 import {Express, NextFunction, Request, Response} from "express";
 import {nodeAddress, nodeMode} from "../utils/env_vars";
-import {generateECDSAKeys, generateHash, sign} from "../crypto/crypto";
+import {generateECDSAKeys, generateHash, sign, HashContent, SigningPayload} from "../crypto/crypto";
+import { networkRoutes } from "./network_routes";
+import { Network, NodeType } from "../network/network";
 
 function helloWorld(app: Express) {
   app.get('/', (_req: Request, res: Response) => {
@@ -18,10 +20,6 @@ function status(app: Express) {
       },
     });
   });
-}
-
-interface HashContent {
-  content: string;
 }
 
 function cryptoHash(app: Express) {
@@ -46,11 +44,6 @@ function cryptoKeyPair(app: Express) {
   });
 }
 
-interface SigningPayload {
-  privateKey: string;
-  data: string;
-}
-
 function cryptoSign(app: Express) {
   app.get('/util/crypto/sign', (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -65,7 +58,7 @@ function cryptoSign(app: Express) {
   });
 }
 
-export function routes(app: Express) {
+export function routes(app: Express, mode: NodeType, network: Network) {
   helloWorld(app);
 
   status(app);
@@ -73,4 +66,8 @@ export function routes(app: Express) {
   cryptoHash(app);
   cryptoKeyPair(app);
   cryptoSign(app);
+
+  if (mode !== NodeType.UTILITY) {
+    networkRoutes(app, network);
+  }
 }

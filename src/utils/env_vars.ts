@@ -1,7 +1,7 @@
-export type NodeMode = "PUBLISHER" | "REPLICA" | "UTILITY";
+import { NodeType } from "../network/network";
 
-export function nodeMode(): NodeMode {
-  return process.env.NODE_MODE as NodeMode;
+export function nodeMode(): NodeType {
+  return process.env.NODE_MODE as NodeType;
 }
 
 export function nodeAddress(): string {
