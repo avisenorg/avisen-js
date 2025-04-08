@@ -1,16 +1,25 @@
 import * as crypto from 'crypto';
 import {createSign} from "node:crypto";
 
-export function generateHash(input: string): string {
-  const hash = crypto.createHash('sha256');
-  hash.update(input);
+export interface HashContent {
+  content: string;
+}
 
-  return hash.digest('hex')
+export interface SigningPayload {
+  privateKey: string;
+  data: string;
 }
 
 interface KeyPair {
   privateKey: string;
   publicKey: string;
+}
+
+export function generateHash(input: string): string {
+  const hash = crypto.createHash('sha256');
+  hash.update(input);
+
+  return hash.digest('hex')
 }
 
 /**
