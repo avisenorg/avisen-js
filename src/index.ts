@@ -5,6 +5,8 @@ import 'dotenv/config'
 import {nodeAddress, nodeMode} from "./utils/env_vars";
 import { Network } from './network/network';
 import { boot } from './network/boot';
+import { PrismaClient } from '@prisma/client';
+import { Blockchain } from './blockchain/blockchain';
 
 const app = express();
 const port = 8085;
@@ -13,6 +15,8 @@ const mode = nodeMode();
 console.log(`Starting up node as ${mode}`);
 
 const network = new Network();
+const prisma = new PrismaClient();
+const blockchain = new Blockchain(prisma);
 
 const bootNodeAddress = process.env.BOOT_NODE;
 
@@ -25,15 +29,19 @@ if (bootNodeAddress) {
     {
       address: nodeAddress(),
       type: nodeMode(),
-    }
-  );
+    },
+    blockchain,
+  ).catch((error) => {
+    console.error('Error during boot process:', error);
+    process.exit(1);
+  });
 } else {
   console.log('No boot node address found.');
 }
 
 
 middleware(app);
-routes(app, mode, network);
+routes(app, mode, network, blockchain);
 
 console.log('Completed node startup.');
 

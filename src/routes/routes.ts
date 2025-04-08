@@ -3,6 +3,8 @@ import {nodeAddress, nodeMode} from "../utils/env_vars";
 import {generateECDSAKeys, generateHash, sign, HashContent, SigningPayload} from "../crypto/crypto";
 import { networkRoutes } from "./network_routes";
 import { Network, NodeType } from "../network/network";
+import { Blockchain } from "../blockchain/blockchain";
+import { blockchainRoutes } from "./blockchain_routes";
 
 function helloWorld(app: Express) {
   app.get('/', (_req: Request, res: Response) => {
@@ -58,7 +60,7 @@ function cryptoSign(app: Express) {
   });
 }
 
-export function routes(app: Express, mode: NodeType, network: Network) {
+export function routes(app: Express, mode: NodeType, network: Network, blockchain: Blockchain) {
   helloWorld(app);
 
   status(app);
@@ -69,5 +71,6 @@ export function routes(app: Express, mode: NodeType, network: Network) {
 
   if (mode !== NodeType.UTILITY) {
     networkRoutes(app, network);
+    blockchainRoutes(app, blockchain)
   }
 }

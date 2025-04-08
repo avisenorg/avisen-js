@@ -1,3 +1,5 @@
+import { Block } from "../blockchain/blockchain";
+
 export interface Node {
   address: string;
   type: NodeType;
@@ -81,5 +83,20 @@ export class Network {
     if (!response.ok) {
       throw new Error(`Failed to update peer ${address} with status ${response.status}`);
     }
+  }
+
+  async downloadBlocks(address: string, page: number): Promise<Block[]> {
+    const response = await fetch(`${address}/blockchain?page=${page}&size=10`, {
+      headers: {
+        'X-Network-ID': this.networkId
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to download blocks from ${address} with status ${response.status}`);
+    }
+
+    const blocks: Block[] = await response.json();
+    return blocks;
   }
 }
