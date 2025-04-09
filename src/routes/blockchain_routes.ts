@@ -37,8 +37,23 @@ function processArticleRoute(app: Express, blockchain: Blockchain) {
   });
 }
 
+function getArticleRoute(app: Express, blockchain: Blockchain) {
+  app.get('/blockchain/article/:hash', async (req: Request, res: Response) => {
+    const hash = req.params.hash;
+
+    const article = await blockchain.getArticle(hash);
+
+    if (!article) {
+      res.status(404).send();
+    } else {
+      res.send(article);
+    }
+  });
+}
+
 export function blockchainRoutes(app: Express, blockchain: Blockchain) {
   chainRoute(app, blockchain);
   getBlockRoute(app, blockchain);
   processArticleRoute(app, blockchain);
+  getArticleRoute(app, blockchain);
 }

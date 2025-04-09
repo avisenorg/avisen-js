@@ -44,4 +44,15 @@ export class Storage {
       },
     });
   }
+
+  async getArticle(hash: string): Promise<Block | null> {
+    return await this.prisma.block.findFirst({
+      where: {
+        data: {
+          path: ['articles'],
+          array_contains: [{ id: hash }]
+        }
+      },
+    });
+  }
 }

@@ -27,7 +27,7 @@ interface Article {
   contentHash: string;
   date: string;
   signature: string;
-  hash: string;
+  id: string;
 }
 
 interface Publisher {
@@ -153,6 +153,8 @@ export class Blockchain {
       }
     }
     
+    article.id = generateHash(article.byline + article.headline + article.section + (article.content ? article.content : '') + article.contentHash + article.date);
+
     this.unprocessedArticles.push(article);
 
     /*
@@ -203,7 +205,16 @@ export class Blockchain {
       processed: true,
       block: undefined,
     };
-  
+  }
+
+  async getArticle(hash: string): Promise<Article | undefined> {
+    const block = await this.storage.getArticle(hash);
+
+    if (!block) {
+      return undefined;
+    }
+
+    return this.convertData(block.data as Prisma.JsonObject).articles.find((article) => article.id === hash);
   }
 
   genesisBlock(): Block {
@@ -244,7 +255,7 @@ export class Blockchain {
           contentHash: articleObject.contentHash as string,
           date: articleObject.date as string,
           signature: articleObject.signature as string,
-          hash: articleObject.hash as string,
+          id: articleObject.id as string,
         }
       }
       throw new Error('Invalid articles data');
