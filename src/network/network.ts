@@ -1,3 +1,5 @@
+import { Block } from "../blockchain/blockchain";
+
 export interface Node {
   address: string;
   type: NodeType;
@@ -8,11 +10,7 @@ export interface Info {
   node: Node;
 }
 
-export enum NodeType {
-  PUBLISHER = 'PUBLISHER',
-  REPLICA = 'REPLICA',
-  UTILITY = 'UTILITY',
-}
+export type NodeType = 'PUBLISHER' | 'REPLICA' | 'UTILITY';
 
 export class Network {
   peers: Node[] = [];
@@ -81,5 +79,20 @@ export class Network {
     if (!response.ok) {
       throw new Error(`Failed to update peer ${address} with status ${response.status}`);
     }
+  }
+
+  async downloadBlocks(address: string, page: number, fromHeight?: number): Promise<Block[]> {
+    const response = await fetch(`${address}/blockchain?page=${page}&size=10${fromHeight ? `&fromHeight=${fromHeight}` : ''}`, {
+      headers: {
+        'X-Network-ID': this.networkId
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to download blocks from ${address} with status ${response.status}`);
+    }
+
+    const blocks: Block[] = await response.json();
+    return blocks;
   }
 }

@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import {createSign} from "node:crypto";
+import {createSign, createVerify} from "node:crypto";
 
 export interface HashContent {
   content: string;
@@ -63,4 +63,14 @@ export function sign(privateKey: Buffer, input: string): string {
   } catch (error: unknown) {
     throw new Error(`Error signing payload: ${(error as Error).message}`);
   }
+}
+
+export function verify(publicKey: Buffer, input: string, signature: string): boolean {
+  const verify = createVerify('sha256');
+  verify.update(input);
+  return verify.verify({
+    key: publicKey,
+    format: 'der',
+    type: 'spki'
+  }, signature, 'base64');
 }
