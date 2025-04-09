@@ -17,7 +17,28 @@ function getBlockRoute(app: Express, blockchain: Blockchain) {
   });
 }
 
+function processArticleRoute(app: Express, blockchain: Blockchain) {
+  app.post('/article', async (req: Request, res: Response) => {
+    const article = req.body;
+    const processed = await blockchain.processArticle(article);
+    
+    if (!processed.processed) {
+      res.status(400).send();
+    }
+
+    if (processed.block) {
+      console.log(`Minted a new block: ${processed.block.hash}`);
+
+      res.status(201).send();
+    } else {
+      console.log('Processed a new article');
+      res.status(200).send();
+    }
+  });
+}
+
 export function blockchainRoutes(app: Express, blockchain: Blockchain) {
   chainRoute(app, blockchain);
   getBlockRoute(app, blockchain);
+  processArticleRoute(app, blockchain);
 }

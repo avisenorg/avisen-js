@@ -33,15 +33,24 @@ interface Publisher {
   publicKey: string;
 }
 
+interface ProcessedArticle {
+  processed: boolean;
+  block?: Block;
+}
+
 export class Blockchain {
   private prisma: PrismaClient;
   private unprocessedArticles: Article[];
   private unprocessedPublishers: Publisher[];
+  private publisherPublicKey: string;
+  private publisherPrivateKey: string;
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
     this.unprocessedArticles = [];
     this.unprocessedPublishers = [];
+    this.publisherPublicKey = process.env.PUBLISHER_PUBLIC_KEY as string;
+    this.publisherPrivateKey = process.env.PUBLISHER_PRIVATE_KEY as string;
   }
 
   async chain(page: number, size: number): Promise<Block[]> {
@@ -131,6 +140,104 @@ export class Blockchain {
     });
 
     return true;
+  }
+
+  async processArticle(article: Article): Promise<ProcessedArticle> {
+    // Verify the article content
+    if (article.content && (article.content.length === 0 || article.content.length > 7500)) {
+      return {
+        processed: false,
+        block: undefined,
+      }
+    }
+
+    // Verify the content hash
+    if (article.content && article.contentHash !== generateHash(article.content)) {
+      return {
+        processed: false,
+        block: undefined,
+      }
+    }
+
+    // Verify the signature
+    let signatureInputData = article.byline + article.headline + article.section
+    if (article.content) {
+      signatureInputData += article.content;
+    }
+    signatureInputData += article.contentHash + article.date;
+
+    if (!verify(Buffer.from(article.authorKey, 'base64'), signatureInputData, article.signature)) {
+      return {
+        processed: false,
+        block: undefined,
+      }
+    }
+    
+    this.unprocessedArticles.push(article);
+
+    /*
+         * if the unprocessed article count is 10 or greater,
+         * mint the articles into a Block and add it to the chain.
+         */
+    if (this.unprocessedArticles.length >= 10) {
+      const timestamp = Date.now();
+      const latestBlock = await this.prisma.block.findFirst({
+        orderBy: {
+          height: 'desc',
+        },
+      });
+
+      if (!latestBlock) {
+        return {
+          processed: true,
+          block: undefined,
+        }
+      }
+      
+      const previousHash = latestBlock.hash;
+      const height = Number(latestBlock.height) + 1;
+      const data = {
+        articles: this.unprocessedArticles,
+        publishers: ((latestBlock.data as JsonObject).publishers as JsonArray).concat(this.unprocessedPublishers as unknown as JsonArray) as unknown as Publisher[],
+      }
+      const hash = generateHash(previousHash + timestamp + JSON.stringify(data));
+
+      const block = {
+        hash,
+        previousHash,
+        timestamp,
+        data,
+        publisherKey: this.publisherPublicKey,
+        signature: sign(Buffer.from(this.publisherPrivateKey, 'base64'), previousHash + JSON.stringify(data) + timestamp + height),
+        height,
+      }
+
+      await this.prisma.block.create({
+        data: {
+          hash: block.hash,
+          previousHash: block.previousHash,
+          timestamp: block.timestamp,
+          data: block.data as unknown as JsonObject,
+          publisherKey: block.publisherKey,
+          signature: block.signature,
+          height: block.height,
+        },
+      });
+
+      this.unprocessedArticles = [];
+      this.unprocessedPublishers = [];
+
+      return {
+        processed: true,
+        block,
+      }
+    }
+
+    return {
+      processed: true,
+      block: undefined,
+    };
+  
   }
 
   genesisBlock(): Block {
