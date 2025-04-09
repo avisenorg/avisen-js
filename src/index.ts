@@ -34,17 +34,60 @@ if (bootNodeAddress) {
   ).catch((error) => {
     console.error('Error during boot process:', error);
     process.exit(1);
+  })
+  .finally(() => {
+    middleware(app);
+    routes(app, mode, network, blockchain);
+    
+    console.log('Completed node startup.');
+    
+    app.listen(port, () => {
+      console.log(`Server is running on port ${port}`)
+    });
   });
 } else {
   console.log('No boot node address found.');
+
+  blockchain.chain(0, 1).then((chain) => {
+    if (chain.length === 0) {
+      console.log('Beginning genesis...');
+
+      const genesisBlock = blockchain.genesisBlock();
+      blockchain.processBlock(genesisBlock).then((value: boolean) => {
+        if (value) {
+          middleware(app);
+          routes(app, mode, network, blockchain);
+          
+          console.log('Completed node startup.');
+          
+          app.listen(port, () => {
+            console.log(`Server is running on port ${port}`)
+          });
+        } else {
+          console.error('Error during genesis block processing');
+          process.exit(1);
+        }
+      }).catch((error) => {
+        console.error('Error during genesis block processing:', error);
+        process.exit(1);
+      });
+    } else {
+      console.log('Blockchain already detected.')
+
+      middleware(app);
+      routes(app, mode, network, blockchain);
+      
+      console.log('Completed node startup.');
+      
+      app.listen(port, () => {
+        console.log(`Server is running on port ${port}`)
+      });
+    }
+  }).catch((error) => {
+    console.error('Error during blockchain retrieval:', error);
+    process.exit(1);
+  });
 }
 
 
-middleware(app);
-routes(app, mode, network, blockchain);
 
-console.log('Completed node startup.');
-
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`)
-});

@@ -1,5 +1,6 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { JsonArray, JsonObject } from '@prisma/client/runtime/library';
+import { generateHash, sign, verify } from '../crypto/crypto';
 
 export interface Block {
   hash: string;
@@ -73,6 +74,26 @@ export class Blockchain {
       if (Number(latestBlock.height) > block.height) {
         return false;
       }
+
+      if (block.previousHash !== latestBlock.hash) {
+        return false;
+      }
+
+      if (block.timestamp <= Number(latestBlock.timestamp)) {
+        return false;
+      }
+
+      const publishers = (latestBlock.data as JsonObject).publishers as JsonArray;
+
+      if (!publishers.includes(block.publisherKey)) {
+        return false;
+      }
+
+      const signatureInputData = block.previousHash + JSON.stringify(block.data) + block.timestamp + block.height;
+
+      if (!verify(Buffer.from(block.publisherKey, 'base64'), signatureInputData, block.signature)) {
+        return false;
+      }
     }
 
     await this.prisma.block.create({
@@ -88,6 +109,30 @@ export class Blockchain {
     });
 
     return true;
+  }
+
+  genesisBlock(): Block {
+    const publisherPublicKey = process.env.PUBLISHER_PUBLIC_KEY as string;
+    const publisherPrivateKey = process.env.PUBLISHER_PRIVATE_KEY as string;
+    const data = {
+        articles: [],
+        publishers: [{
+          publicKey: publisherPublicKey,
+        }]
+    }
+
+    const timestamp = Date.now();
+    const height = 0;
+
+    return {
+      publisherKey: publisherPublicKey,
+      signature: sign(Buffer.from(publisherPrivateKey, 'base64'), JSON.stringify(data) + timestamp + height),
+      data,
+      previousHash: '',
+      timestamp,
+      height,
+      hash: generateHash(timestamp + JSON.stringify(data)),
+    }
   }
 
   convertData(blockData: Prisma.JsonObject): TransactionData {
