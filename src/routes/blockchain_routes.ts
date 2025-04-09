@@ -10,6 +10,14 @@ function chainRoute(app: Express, blockchain: Blockchain) {
   });
 }
 
+function getBlockRoute(app: Express, blockchain: Blockchain) {
+  app.get('/blockchain/block/:hash', async (req: Request, res: Response) => {
+    const hash = req.params.hash;
+    res.send(await blockchain.getBlock(hash));
+  });
+}
+
 export function blockchainRoutes(app: Express, blockchain: Blockchain) {
   chainRoute(app, blockchain);
+  getBlockRoute(app, blockchain);
 }

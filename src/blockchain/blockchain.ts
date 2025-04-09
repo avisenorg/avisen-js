@@ -63,6 +63,28 @@ export class Blockchain {
     });
   }
 
+  async getBlock(hash: string): Promise<Block | null> {
+    const block = await this.prisma.block.findUnique({
+      where: {
+        hash: hash,
+      },
+    });
+
+    if (!block) {
+      return null;
+    }
+
+    return {
+      hash: block.hash,
+      previousHash: block.previousHash,
+      timestamp: Number(block.timestamp),
+      data: this.convertData(block.data as Prisma.JsonObject),
+      publisherKey: block.publisherKey,
+      signature: block.signature,
+      height: Number(block.height),
+    }
+  }
+
   async processBlock(block: Block): Promise<boolean> {
     const latestBlock = await this.prisma.block.findFirst({
       orderBy: {
