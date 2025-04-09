@@ -69,7 +69,7 @@ export function routes(app: Express, mode: NodeType, network: Network, blockchai
   cryptoKeyPair(app);
   cryptoSign(app);
 
-  if (mode !== NodeType.UTILITY) {
+  if (mode !== 'UTILITY') {
     networkRoutes(app, network);
     blockchainRoutes(app, blockchain)
   }

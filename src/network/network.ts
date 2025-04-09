@@ -10,11 +10,7 @@ export interface Info {
   node: Node;
 }
 
-export enum NodeType {
-  PUBLISHER = 'PUBLISHER',
-  REPLICA = 'REPLICA',
-  UTILITY = 'UTILITY',
-}
+export type NodeType = 'PUBLISHER' | 'REPLICA' | 'UTILITY';
 
 export class Network {
   peers: Node[] = [];

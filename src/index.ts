@@ -11,14 +11,30 @@ import { Blockchain } from './blockchain/blockchain';
 const app = express();
 const port = 8085;
 const mode = nodeMode();
+const bootNodeAddress = process.env.BOOT_NODE;
 
 console.log(`Starting up node as ${mode}`);
+
+if (mode !== 'UTILITY') {
+  if (mode === 'PUBLISHER' && !process.env.PUBLISHER_PRIVATE_KEY) {
+    console.error('A publisher signing key is required when starting a node in PUBLISHER mode.');
+    process.exit(1);
+  }
+
+  if (mode === 'PUBLISHER' && !process.env.PUBLISHER_PUBLIC_KEY) {
+    console.error('A publisher public key is required when starting a node in PUBLISHER mode.');
+    process.exit(1);
+  }
+
+  if (mode === 'REPLICA' && !bootNodeAddress) {
+    console.error('A boot node is required when starting a node in REPLICA mode.');
+    process.exit(1);
+  }
+}
 
 const network = new Network();
 const prisma = new PrismaClient();
 const blockchain = new Blockchain(prisma);
-
-const bootNodeAddress = process.env.BOOT_NODE;
 
 if (bootNodeAddress) {
   console.log('Boot node address found. Starting boot process.');
