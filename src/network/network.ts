@@ -81,8 +81,8 @@ export class Network {
     }
   }
 
-  async downloadBlocks(address: string, page: number): Promise<Block[]> {
-    const response = await fetch(`${address}/blockchain?page=${page}&size=10`, {
+  async downloadBlocks(address: string, page: number, fromHeight?: number): Promise<Block[]> {
+    const response = await fetch(`${address}/blockchain?page=${page}&size=10${fromHeight ? `&fromHeight=${fromHeight}` : ''}`, {
       headers: {
         'X-Network-ID': this.networkId
       }

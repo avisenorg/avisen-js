@@ -54,8 +54,8 @@ export class Blockchain {
     this.publisherPrivateKey = process.env.PUBLISHER_PRIVATE_KEY as string;
   }
 
-  async chain(page: number, size: number): Promise<Block[]> {
-    const blocks = await this.storage.getBlocks(page, size);
+  async chain(page: number, size: number, fromHeight?: number): Promise<Block[]> {
+    const blocks = await this.storage.getBlocks(page, size, fromHeight);
 
     return blocks.map((block) => {
       return {
@@ -93,10 +93,12 @@ export class Blockchain {
 
     if (latestBlock) {
       if (Number(latestBlock.height) > block.height) {
+        console.log(`Block ${block.hash} is at height ${block.height} but the latest block is at height ${latestBlock.height}`);
         return false;
       }
 
       if (block.previousHash !== latestBlock.hash) {
+        console.log(`Block ${block.hash} has a previous hash of ${block.previousHash} but the latest block has a hash of ${latestBlock.hash}`);
         return false;
       }
 
@@ -106,13 +108,17 @@ export class Blockchain {
 
       const publishers = (latestBlock.data as JsonObject).publishers as JsonArray;
 
-      if (!publishers.includes(block.publisherKey)) {
+      if (!publishers.some((publisher) => (publisher as JsonObject).publicKey === block.publisherKey)) {
+        console.log(`Block ${block.hash} has a publisher key of ${block.publisherKey} but is not included in the latest block.`);
         return false;
       }
 
       const signatureInputData = block.previousHash + JSON.stringify(block.data) + block.timestamp + block.height;
-
+      
+      console.log(`Signature input data: ${signatureInputData}`);
+      
       if (!verify(Buffer.from(block.publisherKey, 'base64'), signatureInputData, block.signature)) {
+        console.log(`Block ${block.hash} has an invalid signature`);
         return false;
       }
     }

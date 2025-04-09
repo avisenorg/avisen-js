@@ -8,13 +8,25 @@ export class Storage {
     this.prisma = prisma;
   }
   
-  async getBlocks(page: number, size: number): Promise<Block[]> {
-    return await this.prisma.block.findMany({
-      skip: page * size,
-      take: size,
-    });
+  async getBlocks(page: number, size: number, fromHeight?: number): Promise<Block[]> {
+    if (fromHeight) {
+      return await this.prisma.block.findMany({
+        skip: page * size,
+        take: size,
+        where: {
+          height: {
+            gt: fromHeight,
+          },
+        },
+      });
+    } else {
+      return await this.prisma.block.findMany({
+        skip: page * size,
+        take: size,
+      });
+    }
   }
-
+  
   async getBlock(hash: string): Promise<Block | null> {
     return await this.prisma.block.findUnique({
       where: {

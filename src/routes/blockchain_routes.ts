@@ -5,8 +5,13 @@ function chainRoute(app: Express, blockchain: Blockchain) {
   app.get('/blockchain', async (req: Request, res: Response) => {
     const page = Number(req.query.page ? req.query.page : 0);
     const size = Number(req.query.size ? req.query.size : 10);
+    let fromHeight;
+
+    if (req.query.fromHeight) {
+      fromHeight = Number(req.query.fromHeight);
+    }
     
-    res.send(await blockchain.chain(page, size));
+    res.send(await blockchain.chain(page, size, fromHeight));
   });
 }
 

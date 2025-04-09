@@ -35,6 +35,21 @@ export async function boot(network: Network, bootNodeAddress: string, nodeInfo: 
     }
   } else {
     console.log('Blockchain already exists. Checking for new blocks...');
+
+    let page = 0;
+    let newBlocks = await network.downloadBlocks(bootNodeAddress, page, currentChain[currentChain.length - 1].height);
+
+    console.log(`Downloaded ${newBlocks.length}  blocks.`);
+
+    while (newBlocks.length > 0) {
+      for (const block of newBlocks) {
+        console.log(`Processing block ${block.hash} at height ${block.height}...`);
+        await blockchain.processBlock(block);
+      }
+
+      page++;
+      newBlocks = await network.downloadBlocks(bootNodeAddress, page, newBlocks[newBlocks.length - 1].height);
+    }
   }
 
   console.log('Adding self to the network...');
