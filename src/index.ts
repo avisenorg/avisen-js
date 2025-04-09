@@ -7,7 +7,7 @@ import { Network } from './network/network';
 import { boot } from './network/boot';
 import { PrismaClient } from '@prisma/client';
 import { Blockchain } from './blockchain/blockchain';
-
+import { Storage } from './storage/storage';
 const app = express();
 const port = 8085;
 const mode = nodeMode();
@@ -34,7 +34,8 @@ if (mode !== 'UTILITY') {
 
 const network = new Network();
 const prisma = new PrismaClient();
-const blockchain = new Blockchain(prisma);
+const storage = new Storage(prisma);
+const blockchain = new Blockchain(storage);
 
 if (bootNodeAddress) {
   console.log('Boot node address found. Starting boot process.');

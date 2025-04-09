@@ -1,6 +1,7 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { JsonArray, JsonObject } from '@prisma/client/runtime/library';
 import { generateHash, sign, verify } from '../crypto/crypto';
+import { Storage } from '../storage/storage';
 
 export interface Block {
   hash: string;
@@ -39,14 +40,14 @@ interface ProcessedArticle {
 }
 
 export class Blockchain {
-  private prisma: PrismaClient;
+  private storage: Storage;
   private unprocessedArticles: Article[];
   private unprocessedPublishers: Publisher[];
   private publisherPublicKey: string;
   private publisherPrivateKey: string;
 
-  constructor(prisma: PrismaClient) {
-    this.prisma = prisma;
+  constructor(storage: Storage) {
+    this.storage = storage;
     this.unprocessedArticles = [];
     this.unprocessedPublishers = [];
     this.publisherPublicKey = process.env.PUBLISHER_PUBLIC_KEY as string;
@@ -54,10 +55,7 @@ export class Blockchain {
   }
 
   async chain(page: number, size: number): Promise<Block[]> {
-    const blocks = await this.prisma.block.findMany({
-      skip: page * size,
-      take: size,
-    });
+    const blocks = await this.storage.getBlocks(page, size);
 
     return blocks.map((block) => {
       return {
@@ -73,11 +71,7 @@ export class Blockchain {
   }
 
   async getBlock(hash: string): Promise<Block | null> {
-    const block = await this.prisma.block.findUnique({
-      where: {
-        hash: hash,
-      },
-    });
+    const block = await this.storage.getBlock(hash);
 
     if (!block) {
       return null;
@@ -95,11 +89,7 @@ export class Blockchain {
   }
 
   async processBlock(block: Block): Promise<boolean> {
-    const latestBlock = await this.prisma.block.findFirst({
-      orderBy: {
-        height: 'desc',
-      },
-    });
+    const latestBlock = await this.storage.latestBlock();
 
     if (latestBlock) {
       if (Number(latestBlock.height) > block.height) {
@@ -127,17 +117,7 @@ export class Blockchain {
       }
     }
 
-    await this.prisma.block.create({
-      data: {
-        hash: block.hash,
-        previousHash: block.previousHash,
-        timestamp: block.timestamp,
-        data: block.data as unknown as JsonObject,
-        publisherKey: block.publisherKey,
-        signature: block.signature,
-        height: block.height,
-      },
-    });
+    await this.storage.createBlock(block);
 
     return true;
   }
@@ -181,11 +161,7 @@ export class Blockchain {
          */
     if (this.unprocessedArticles.length >= 10) {
       const timestamp = Date.now();
-      const latestBlock = await this.prisma.block.findFirst({
-        orderBy: {
-          height: 'desc',
-        },
-      });
+      const latestBlock = await this.storage.latestBlock();
 
       if (!latestBlock) {
         return {
@@ -212,17 +188,7 @@ export class Blockchain {
         height,
       }
 
-      await this.prisma.block.create({
-        data: {
-          hash: block.hash,
-          previousHash: block.previousHash,
-          timestamp: block.timestamp,
-          data: block.data as unknown as JsonObject,
-          publisherKey: block.publisherKey,
-          signature: block.signature,
-          height: block.height,
-        },
-      });
+      await this.storage.createBlock(block);
 
       this.unprocessedArticles = [];
       this.unprocessedPublishers = [];
